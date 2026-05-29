@@ -29,6 +29,7 @@ fun RepoList (
 
     Box (
         modifier = modifier
+            .fillMaxSize()
     ) {
         if (isLoading) {
             CircularProgressIndicator(
@@ -46,7 +47,7 @@ fun RepoList (
             )
         }
 
-        if (!isLoading && errMsg != null) {
+        if (!isLoading && errMsg == null) {
             LazyColumn (
                 modifier = Modifier.fillMaxSize()
             ) {
