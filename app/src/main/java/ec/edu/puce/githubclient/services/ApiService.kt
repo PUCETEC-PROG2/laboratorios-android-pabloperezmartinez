@@ -18,7 +18,7 @@ interface ApiService {
     ): List<Repository>
 
     @POST("/user/repos")
-    suspend fun createRepostory (
+    suspend fun createRepository (
         @Body repository: RepositoryPayload
     ): Repository
 }
