@@ -1,6 +1,6 @@
 package ec.edu.puce.githubclient.services
 
-import ec.edu.puce.githubclient.BuildConfig
+import android.content.Context
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -8,27 +8,37 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
     private const val BASE_URL = "https://api.github.com"
+    private lateinit var authService: AuthService
+
+    fun init(context: Context) {
+        authService = AuthService(context)
+    }
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    private val httpClient = OkHttpClient.Builder()
-        .addInterceptor(logging)
-        .addInterceptor { chain ->
-            val token = BuildConfig.GITHUB_TOKEN
-            println("GITHUB TOKEN: $token")
+    private val httpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .addInterceptor { chain ->
+                val token = authService.getToken() ?: ""
+                
+                val requestBuilder = chain.request().newBuilder()
+                    .addHeader("Accept", "application/vnd.github+json")
+                    .addHeader("X-GitHub-Api-Version", "2022-11-28")
+                    .addHeader("Cache-Control", "no-cache, no-store, must-revalidate")
 
-            val request = chain.request().newBuilder()
-                .addHeader("Authorization", "Bearer $token")
-                .addHeader("Cache-Control", "no-cache, no-store, must-revalidate")
-                .addHeader("Pragma", "no-cache")
-                .addHeader("Expires", "0")
-                .addHeader("Connection", "close")
-                .build()
-            chain.proceed(request)
-        }
-        .build()
+                if (token.isNotBlank()) {
+                    // GitHub requiere "Bearer " para PATs modernos o "token " para antiguos. 
+                    // "Bearer" es el estándar actual.
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+
+                chain.proceed(requestBuilder.build())
+            }
+            .build()
+    }
 
     val apiService: ApiService by lazy {
         Retrofit.Builder()
